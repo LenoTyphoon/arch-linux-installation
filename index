@@ -2,173 +2,294 @@
 
 ## 1. Introduction
 
-For this assignment, I manually installed Arch Linux in VirtualBox using the Arch Wiki Installation Guide without using `archinstall`. I configured the operating system, installed the LXQt desktop environment, created user accounts, and customized the system.
+I manually installed Arch Linux in VirtualBox using the official Arch Linux Installation Guide. I did not use `archinstall`.
+
+I installed LXQt, configured user accounts, enabled SSH, customized Zsh, and installed software from the AUR.
 
 ## 2. Virtual Machine Setup
 
-I created a VirtualBox virtual machine with the following configuration:
+I created a VirtualBox VM with:
 
-- Operating system: Arch Linux (64-bit)
-- Virtual disk: 32 GB
+- OS: Arch Linux (64-bit)
+- Disk: 32 GB
 - Firmware: UEFI
 - Network: NAT
-- Installation ISO: Arch Linux
+- Installation media: Arch Linux ISO
 
-## 3. Disk Partitioning
+I booted into the Arch Linux installation environment.
 
-I used GPT partitioning and created two partitions:
-
-- `/dev/sda1` — 1 GB EFI partition (FAT32)
-- `/dev/sda2` — Remaining space for the root filesystem (ext4)
-
-I formatted and mounted the partitions:
+## 3. Network and Disk Setup
 
 ```bash
+# Check internet connection
+ping -c 3 archlinux.org
+
+# Check system time
+timedatectl
+
+# View available disks
+lsblk
+
+# Open disk partitioning tool
+cfdisk /dev/sda
+```
+
+I selected GPT and created two partitions:
+
+| Partition | Size | Format |
+|---|---|---|
+| /dev/sda1 | 1 GB | FAT32 (EFI) |
+| /dev/sda2 | Remaining space | ext4 (root) |
+
+```bash
+# Format EFI partition
 mkfs.fat -F 32 /dev/sda1
+
+# Format root partition
 mkfs.ext4 /dev/sda2
+
+# Mount root filesystem
 mount /dev/sda2 /mnt
+
+# Create EFI mount directory
 mkdir -p /mnt/boot
+
+# Mount EFI partition
 mount /dev/sda1 /mnt/boot
 ```
 
-## 4. Installing Arch Linux
-
-I installed the base system and essential packages:
+## 4. Install Arch Linux
 
 ```bash
+# Install base system and required packages
 pacstrap -K /mnt base linux linux-firmware sudo nano vim networkmanager grub efibootmgr zsh openssh man-db man-pages
-```
 
-Then generated the filesystem table and entered the installation:
-
-```bash
+# Generate filesystem mount configuration
 genfstab -U /mnt >> /mnt/etc/fstab
+
+# Enter installed system
 arch-chroot /mnt
 ```
 
-## 5. System Configuration
-
-I configured the timezone, locale, hostname, and root password.
+## 5. Configure the System
 
 ```bash
+# Set timezone
 ln -sf /usr/share/zoneinfo/America/Chicago /etc/localtime
+
+# Set hardware clock
 hwclock --systohc
+
+# Edit locale settings
+nano /etc/locale.gen
 ```
 
-After enabling `en_US.UTF-8 UTF-8` in `/etc/locale.gen`:
+I uncommented `en_US.UTF-8 UTF-8`.
 
 ```bash
+# Generate locale
 locale-gen
+
+# Set system language
 echo "LANG=en_US.UTF-8" > /etc/locale.conf
+
+# Set hostname
 echo "arch-vm" > /etc/hostname
+
+# Edit host mappings
+nano /etc/hosts
+
+# Set root password
 passwd
 ```
 
-I also configured `/etc/hosts`.
+In `/etc/hosts`, I added:
 
-## 6. GRUB Bootloader
+```text
+127.0.0.1 localhost
+::1 localhost
+127.0.1.1 arch-vm.localdomain arch-vm
+```
 
-I installed GRUB for UEFI booting:
+## 6. Install GRUB Bootloader
 
 ```bash
+# Install bootloader packages
 pacman -S grub efibootmgr
+
+# Install GRUB for UEFI
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
+
+# Generate GRUB configuration
 grub-mkconfig -o /boot/grub/grub.cfg
 ```
 
-## 7. Users and Permissions
+## 7. Create Users and Configure Sudo
 
-I created two user accounts, `willg` and `codi`, and added both to the `wheel` group.
-
-I enabled sudo permissions by running:
+I created two users: `willg` and `codi`.
 
 ```bash
+# Create primary user with Zsh
+useradd -m -G wheel -s /bin/zsh willg
+
+# Set primary user password
+passwd willg
+
+# Create second user with Zsh
+useradd -m -G wheel -s /bin/zsh codi
+
+# Set second user password
+passwd codi
+
+# Edit sudo permissions
 EDITOR=nano visudo
 ```
 
-And uncommenting:
+I uncommented:
 
 ```text
 %wheel ALL=(ALL:ALL) ALL
 ```
 
-## 8. Networking and SSH
+This allows members of the `wheel` group to use sudo.
 
-I enabled NetworkManager and SSH:
+## 8. Enable Networking and SSH
 
 ```bash
+# Enable network management
 systemctl enable NetworkManager
+
+# Enable SSH server
 systemctl enable sshd
 ```
 
-## 9. LXQt Desktop
-
-I installed LXQt, SDDM, Firefox, and VirtualBox guest utilities:
+## 9. Install LXQt Desktop
 
 ```bash
+# Update packages
 pacman -Syu
+
+# Install desktop, login manager, terminal, and browser
 pacman -S xorg-server lxqt sddm breeze-icons qterminal firefox
+
+# Install VirtualBox guest tools
 pacman -S virtualbox-guest-utils
-```
 
-Then enabled graphical boot:
-
-```bash
+# Enable graphical login
 systemctl enable sddm
+
+# Boot into graphical mode by default
 systemctl set-default graphical.target
+
+# Enable VirtualBox guest service
 systemctl enable vboxservice
 ```
 
-After rebooting, I successfully logged into the LXQt desktop.
-
-## 10. Zsh Customization
-
-I used Zsh as my alternative shell and configured `~/.zshrc` with a colored prompt and aliases.
+## 10. Reboot into Arch Linux
 
 ```bash
+# Exit installed system
+exit
+
+# Unmount partitions
+umount -R /mnt
+
+# Restart virtual machine
+reboot
+```
+
+I removed the installation ISO and successfully logged into the LXQt desktop.
+
+## 11. Configure Zsh
+
+I switched to my user account and created a Zsh configuration file.
+
+```bash
+# Switch to primary user
+su - willg
+
+# Create configuration file
+touch ~/.zshrc
+
+# Edit configuration
+nano ~/.zshrc
+```
+
+I added:
+
+```bash
+# Enable terminal colors
 autoload -Uz colors && colors
+
+# Colored prompt
 PROMPT='%F{cyan}%n@%m%f:%F{green}%~%f %# '
 
+# Custom aliases
 alias ll='ls -lah --color=auto'
 alias update='sudo pacman -Syu'
 alias install='sudo pacman -S'
 alias search='pacman -Ss'
 alias cls='clear'
+alias ports='ss -tuln'
 alias myip='ip -br addr'
+alias ..='cd ..'
+alias ...='cd ../..'
 ```
 
-## 11. AUR Installation
+```bash
+# Apply Zsh configuration
+source ~/.zshrc
+```
 
-I installed Git and the required development tools:
+The terminal displayed a colored prompt and the aliases worked.
+
+## 12. Install AUR Helper and Package
+
+After logging into LXQt, I opened QTerminal.
 
 ```bash
+# Update system
+sudo pacman -Syu
+
+# Install development tools
 sudo pacman -S --needed git base-devel
-```
 
-Then installed Yay:
-
-```bash
+# Download Yay
+cd ~
 git clone https://aur.archlinux.org/yay.git
+
+# Enter Yay directory
 cd yay
+
+# Inspect build instructions
+less PKGBUILD
+
+# Build and install Yay
 makepkg -si
-```
 
-I used Yay to install Visual Studio Code:
-
-```bash
+# Install Visual Studio Code from AUR
 yay -S visual-studio-code-bin
 ```
 
-Visual Studio Code successfully appeared in the LXQt desktop.
+Visual Studio Code was successfully installed.
 
-## 12. Problems and Solutions
+## 13. Problems and Solutions
 
-**Zsh configuration:** Zsh displayed its first-time setup menu. I created a `.zshrc` file manually to configure the shell.
+**Zsh setup screen:** Zsh displayed its first-time configuration menu. I created `.zshrc` manually.
 
-**CPU warning:** VirtualBox displayed a temporary CPU soft-lockup warning during installation. The installation continued successfully.
+**CPU soft-lockup warning:** A temporary VirtualBox CPU warning appeared during installation. The installation continued.
 
-**Virtual console warning:** The system reported a missing `/etc/vconsole.conf` file and used default settings. This did not prevent installation.
+**Missing vconsole.conf:** Arch displayed a warning about the missing console configuration file. Default settings were used.
 
-## 13. Conclusion
+## 14. Conclusion
 
-I successfully installed Arch Linux manually in VirtualBox. The system boots into LXQt and includes two user accounts, sudo permissions, SSH, networking, a customized Zsh shell, and Visual Studio Code installed through the AUR.
+I successfully installed Arch Linux manually in VirtualBox with:
+
+- LXQt graphical desktop
+- Two users with sudo permissions
+- Zsh with colored terminal and aliases
+- NetworkManager and SSH
+- GRUB bootloader
+- Yay AUR helper
+- Visual Studio Code from the AUR
+
