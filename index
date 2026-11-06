@@ -2,7 +2,7 @@
 
 ## 1. Introduction
 
-I manually installed Arch Linux in VirtualBox using the official Arch Linux Installation Guide. I did not use `archinstall`.
+I manually installed Arch Linux in VirtualBox using the official Arch Linux Installation Guide.
 
 I installed LXQt, configured user accounts, enabled SSH, customized Zsh, and installed software from the AUR.
 
