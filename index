@@ -1,0 +1,174 @@
+# Arch Linux Installation in VirtualBox
+
+## 1. Introduction
+
+For this assignment, I manually installed Arch Linux in VirtualBox using the Arch Wiki Installation Guide without using `archinstall`. I configured the operating system, installed the LXQt desktop environment, created user accounts, and customized the system.
+
+## 2. Virtual Machine Setup
+
+I created a VirtualBox virtual machine with the following configuration:
+
+- Operating system: Arch Linux (64-bit)
+- Virtual disk: 32 GB
+- Firmware: UEFI
+- Network: NAT
+- Installation ISO: Arch Linux
+
+## 3. Disk Partitioning
+
+I used GPT partitioning and created two partitions:
+
+- `/dev/sda1` — 1 GB EFI partition (FAT32)
+- `/dev/sda2` — Remaining space for the root filesystem (ext4)
+
+I formatted and mounted the partitions:
+
+```bash
+mkfs.fat -F 32 /dev/sda1
+mkfs.ext4 /dev/sda2
+mount /dev/sda2 /mnt
+mkdir -p /mnt/boot
+mount /dev/sda1 /mnt/boot
+```
+
+## 4. Installing Arch Linux
+
+I installed the base system and essential packages:
+
+```bash
+pacstrap -K /mnt base linux linux-firmware sudo nano vim networkmanager grub efibootmgr zsh openssh man-db man-pages
+```
+
+Then generated the filesystem table and entered the installation:
+
+```bash
+genfstab -U /mnt >> /mnt/etc/fstab
+arch-chroot /mnt
+```
+
+## 5. System Configuration
+
+I configured the timezone, locale, hostname, and root password.
+
+```bash
+ln -sf /usr/share/zoneinfo/America/Chicago /etc/localtime
+hwclock --systohc
+```
+
+After enabling `en_US.UTF-8 UTF-8` in `/etc/locale.gen`:
+
+```bash
+locale-gen
+echo "LANG=en_US.UTF-8" > /etc/locale.conf
+echo "arch-vm" > /etc/hostname
+passwd
+```
+
+I also configured `/etc/hosts`.
+
+## 6. GRUB Bootloader
+
+I installed GRUB for UEFI booting:
+
+```bash
+pacman -S grub efibootmgr
+grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
+grub-mkconfig -o /boot/grub/grub.cfg
+```
+
+## 7. Users and Permissions
+
+I created two user accounts, `willg` and `codi`, and added both to the `wheel` group.
+
+I enabled sudo permissions by running:
+
+```bash
+EDITOR=nano visudo
+```
+
+And uncommenting:
+
+```text
+%wheel ALL=(ALL:ALL) ALL
+```
+
+## 8. Networking and SSH
+
+I enabled NetworkManager and SSH:
+
+```bash
+systemctl enable NetworkManager
+systemctl enable sshd
+```
+
+## 9. LXQt Desktop
+
+I installed LXQt, SDDM, Firefox, and VirtualBox guest utilities:
+
+```bash
+pacman -Syu
+pacman -S xorg-server lxqt sddm breeze-icons qterminal firefox
+pacman -S virtualbox-guest-utils
+```
+
+Then enabled graphical boot:
+
+```bash
+systemctl enable sddm
+systemctl set-default graphical.target
+systemctl enable vboxservice
+```
+
+After rebooting, I successfully logged into the LXQt desktop.
+
+## 10. Zsh Customization
+
+I used Zsh as my alternative shell and configured `~/.zshrc` with a colored prompt and aliases.
+
+```bash
+autoload -Uz colors && colors
+PROMPT='%F{cyan}%n@%m%f:%F{green}%~%f %# '
+
+alias ll='ls -lah --color=auto'
+alias update='sudo pacman -Syu'
+alias install='sudo pacman -S'
+alias search='pacman -Ss'
+alias cls='clear'
+alias myip='ip -br addr'
+```
+
+## 11. AUR Installation
+
+I installed Git and the required development tools:
+
+```bash
+sudo pacman -S --needed git base-devel
+```
+
+Then installed Yay:
+
+```bash
+git clone https://aur.archlinux.org/yay.git
+cd yay
+makepkg -si
+```
+
+I used Yay to install Visual Studio Code:
+
+```bash
+yay -S visual-studio-code-bin
+```
+
+Visual Studio Code successfully appeared in the LXQt desktop.
+
+## 12. Problems and Solutions
+
+**Zsh configuration:** Zsh displayed its first-time setup menu. I created a `.zshrc` file manually to configure the shell.
+
+**CPU warning:** VirtualBox displayed a temporary CPU soft-lockup warning during installation. The installation continued successfully.
+
+**Virtual console warning:** The system reported a missing `/etc/vconsole.conf` file and used default settings. This did not prevent installation.
+
+## 13. Conclusion
+
+I successfully installed Arch Linux manually in VirtualBox. The system boots into LXQt and includes two user accounts, sudo permissions, SSH, networking, a customized Zsh shell, and Visual Studio Code installed through the AUR.
